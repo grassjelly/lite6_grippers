@@ -124,7 +124,7 @@ pos: 512
 
 ## Credits
 
-Firmware adapted from [hygradme/OpenParallelGripper](https://github.com/hygradme/OpenParallelGripper/blob/main/SCS3045M_version/software/arduino_sketch/ModbusRTU_SCSServo.ino).
+Firmware and wiring diagram adapted from [hygradme/OpenParallelGripper](https://github.com/hygradme/OpenParallelGripper/blob/main/SCS3045M_version/software/arduino_sketch/ModbusRTU_SCSServo.ino).
 
 ### Changes from original
 
