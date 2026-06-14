@@ -1,0 +1,9 @@
+controller_names:
+  - parallel_gripper_controller
+
+parallel_gripper_controller:
+  action_ns: gripper_action
+  type: GripperCommand
+  default: true
+  joints:
+    - drive_joint

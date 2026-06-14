@@ -1,0 +1,7 @@
+controller_names:
+  - parallel_gripper_controller
+
+parallel_gripper_controller:
+  type: GripperCommand
+  joints:
+    - drive_joint

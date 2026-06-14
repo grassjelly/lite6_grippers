@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+<!--
+  Parallel gripper URDF macro for Lite6.
+  Hardware: FTServo SCS15 servo driven by M5Stack Atom Lite via Modbus RTU
+            over the xArm tool serial GPIO (115200 baud, slave ID 1).
+
+  Meshes are self-contained in this package under meshes/{visual,collision}/.
+  Replace gripper.stl and finger.stl with your custom CAD when ready.
+
+  Joint convention:
+    drive_joint        — prismatic, +Y axis, 0–0.025 m (left finger displacement)
+    right_finger_joint — prismatic, -Y axis, 0–0.025 m (mirrors drive_joint)
+  The driver node publishes both joints; robot_state_publisher applies axis direction.
+-->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="parallel_gripper_macro"
+    params="prefix:='' attach_to:='' attach_xyz:='0 0 0' attach_rpy:='0 0 0'">
+
+    <joint name="${prefix}parallel_gripper_fix" type="fixed">
+      <parent link="${attach_to}"/>
+      <child link="${prefix}parallel_gripper_mount"/>
+      <origin xyz="${attach_xyz}" rpy="${attach_rpy}"/>
+    </joint>
+
+    <link name="${prefix}parallel_gripper_mount">
+      <inertial>
+        <origin xyz="0.0 0.0 0.030" rpy="0 0 0"/>
+        <mass value="0.28"/>
+        <inertia ixx="0.00047106" ixy="3.9292E-07" ixz="2.6537E-06"
+                 iyy="0.00033072" iyz="-1.0975E-05" izz="0.00025642"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://parallel_gripper/meshes/visual/base.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+        <material name="${prefix}White">
+          <color rgba="1 1 1 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://parallel_gripper/meshes/visual/base.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${prefix}parallel_gripper_base_joint" type="fixed">
+      <parent link="${prefix}parallel_gripper_mount"/>
+      <child link="${prefix}parallel_gripper_base"/>
+      <origin xyz="0 0 0.039" rpy="0 0 0"/>
+    </joint>
+
+    <link name="${prefix}parallel_gripper_base">
+      <inertial>
+        <origin xyz="0.0 0.0 0.030" rpy="0 0 0"/>
+        <mass value="0.28"/>
+        <inertia ixx="0.00047106" ixy="3.9292E-07" ixz="2.6537E-06"
+                 iyy="0.00033072" iyz="-1.0975E-05" izz="0.00025642"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://parallel_gripper/meshes/visual/gripper.stl"/>
+        </geometry>
+        <material name="${prefix}Black">
+          <color rgba="1 1 1 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://parallel_gripper/meshes/collision/gripper.stl"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="${prefix}link_tcp"/>
+    <joint name="${prefix}joint_tcp" type="fixed">
+      <origin xyz="0 0 0.10125" rpy="0 0 0"/>
+      <parent link="${prefix}parallel_gripper_base"/>
+      <child link="${prefix}link_tcp"/>
+    </joint>
+
+    <!-- Left finger — the actuated joint controlled via GripperCommand action -->
+    <link name="${prefix}left_finger_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.01"/>
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://parallel_gripper/meshes/visual/finger.stl"/>
+        </geometry>
+        <material name="${prefix}Black">
+          <color rgba="1 1 1 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://parallel_gripper/meshes/collision/finger.stl"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${prefix}drive_joint" type="prismatic">
+      <origin xyz="0 0 0.055" rpy="0 0 0"/>
+      <parent link="${prefix}parallel_gripper_base"/>
+      <child link="${prefix}left_finger_link"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="0" upper="0.025" effort="10.0" velocity="0.1"/>
+      <dynamics damping="0.1" friction="0.1"/>
+    </joint>
+
+    <!-- Right finger — mirrors left finger; driver node publishes its joint state -->
+    <link name="${prefix}right_finger_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.01"/>
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 3.1416"/>
+        <geometry>
+          <mesh filename="package://parallel_gripper/meshes/visual/finger.stl"/>
+        </geometry>
+        <material name="${prefix}Black">
+          <color rgba="1 1 1 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 3.1416"/>
+        <geometry>
+          <mesh filename="package://parallel_gripper/meshes/collision/finger.stl"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${prefix}right_finger_joint" type="prismatic">
+      <origin xyz="0 0 0.055" rpy="0 0 0"/>
+      <parent link="${prefix}parallel_gripper_base"/>
+      <child link="${prefix}right_finger_link"/>
+      <axis xyz="0 -1 0"/>
+      <limit lower="0" upper="0.025" effort="10.0" velocity="0.1"/>
+      <mimic joint="${prefix}drive_joint" multiplier="1.0" offset="0.0"/>
+      <dynamics damping="0.1" friction="0.1"/>
+    </joint>
+
+  </xacro:macro>
+</robot>
