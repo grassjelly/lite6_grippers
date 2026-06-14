@@ -122,6 +122,45 @@ pos: 512
 
 ---
 
+## Python Control
+
+`control.py` drives the gripper from a host PC via the xArm Python SDK over Ethernet.
+
+### Install
+
+```bash
+pip install xarm-python-sdk
+```
+
+### Usage
+
+```bash
+python3 control.py <robot_ip> [actions]
+```
+
+`actions` is a string of characters executed in order, then repeated:
+
+| Character | Action |
+|---|---|
+| `o` | Open gripper |
+| `c` | Close gripper |
+| `s` | Sleep 1 s |
+| `0`–`9` | Move to that tenth of full range |
+
+Examples:
+
+```bash
+# Open then close, repeat
+python3 control.py 192.168.1.151 oc
+
+# Open, wait, close
+python3 control.py 192.168.1.151 oso
+```
+
+Position is reported in meters (`0.0` = closed, `0.025` = fully open).
+
+---
+
 ## Credits
 
 Firmware and wiring diagram adapted from [hygradme/OpenParallelGripper](https://github.com/hygradme/OpenParallelGripper/blob/main/SCS3045M_version/software/arduino_sketch/ModbusRTU_SCSServo.ino).

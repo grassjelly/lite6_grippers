@@ -19,7 +19,8 @@
 #define GRIPPER_CLOSE 512
 #define SPEED         768
 
-uint16_t gripper_pos = 0;
+#define SERVO_READ_HZ 5
+#define SERVO_READ_INTERVAL_MS (1000 / SERVO_READ_HZ)
 
 SCSCL scscl;
 ModbusRTU mb;
@@ -31,28 +32,14 @@ void setGripperPos(uint16_t pos) {
   Serial.printf("pos: %d\n", pos);
 }
 
-void setup() {
-  pinMode(LITE6_OUTPUT0, INPUT_PULLUP);
-  pinMode(LITE6_OUTPUT1, INPUT_PULLUP);
-
-  M5.begin(true, false, true);
-  Serial.begin(115200);
-
-  Serial1.begin(1000000, SERIAL_8N1, RX_UART, TX_UART);
-  scscl.pSerial = &Serial1;
-
-  Serial2.begin(115200, SERIAL_8N1, RX_MODBUS, TX_MODBUS);
-  mb.begin(&Serial2);
-  mb.slave(SLAVE_ID);
-  mb.addHreg(REG_GRIPPER_POS);
-  mb.Hreg(REG_GRIPPER_POS, gripper_pos);
-  mb.addIreg(REG_READ_GRIPPER_POS, gripper_pos);
-
-  delay(1000);
-  setGripperPos(gripper_pos);
+void setGripperPosOnChange(uint16_t pos) {
+  static uint16_t last_target = UINT16_MAX;
+  if (pos == last_target) return;
+  last_target = pos;
+  setGripperPos(pos);
 }
 
-void loop() {
+void updateDigitalIOGripper() {
   int lite6_0 = digitalRead(LITE6_OUTPUT0);
   int lite6_1 = digitalRead(LITE6_OUTPUT1);
   static int last_0 = -1;
@@ -70,14 +57,43 @@ void loop() {
     }
   }
 
-  if (lite6_0 == HIGH && lite6_1 == HIGH) {
-    uint16_t new_pos = mb.Hreg(REG_GRIPPER_POS);
-    if (new_pos != gripper_pos) {
-      gripper_pos = new_pos;
-      setGripperPos(gripper_pos);
-    }
-  }
+}
 
+void updateReadGripperPos() {
+  static uint32_t last_read_ms = 0;
+  uint32_t now = millis();
+  if (now - last_read_ms < SERVO_READ_INTERVAL_MS) return;
+  last_read_ms = now;
+  int actual_pos = scscl.ReadPos(1);
+  if (actual_pos >= 0) {
+    mb.Hreg(REG_READ_GRIPPER_POS, (uint16_t)actual_pos);
+  }
+}
+
+void setup() {
+  pinMode(LITE6_OUTPUT0, INPUT_PULLUP);
+  pinMode(LITE6_OUTPUT1, INPUT_PULLUP);
+
+  M5.begin(true, false, true);
+  Serial.begin(115200);
+
+  Serial1.begin(1000000, SERIAL_8N1, RX_UART, TX_UART);
+  scscl.pSerial = &Serial1;
+
+  Serial2.begin(115200, SERIAL_8N1, RX_MODBUS, TX_MODBUS);
+  mb.begin(&Serial2);
+  mb.slave(SLAVE_ID);
+  mb.addHreg(REG_GRIPPER_POS, 0);
+  mb.addHreg(REG_READ_GRIPPER_POS, 0);
+
+  delay(1000);
+  setGripperPos(0);
+}
+
+void loop() {
+  updateDigitalIOGripper();
+  setGripperPosOnChange(mb.Hreg(REG_GRIPPER_POS));
+  updateReadGripperPos();
   mb.task();
   yield();
 }
